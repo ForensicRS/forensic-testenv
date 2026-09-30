@@ -19,6 +19,14 @@
 #   - that journal-online-stale.journal really lands with header byte 20 (State) == 1 (ONLINE)
 #     rather than 2 (ARCHIVED); the timing (`sleep 1` below) may need tuning
 #
+# NOT byte-reproducible across runs, unlike generators/utmp.py: journal_file_init_header()
+# unconditionally calls sd_id128_randomize() for the header's file_id (and seqnum_id, which
+# defaults to file_id when there's no template file) - there is no env var or flag to pin it,
+# verified by reading journal-file.c itself. So these fixtures follow the same rule
+# generators/README.md already states for chrome_history.py (generated once, hashed, and
+# from then on everyone uses that one pinned copy), not the stricter "two runs are
+# byte-identical" bar generators/utmp.py and generators/textlogs/ meet.
+#
 # Compression algorithm and format-variant selection is via env vars read directly by
 # src/libsystemd/sd-journal/journal-file.c (verified against the systemd v255 source, which
 # is the authority here, not the man pages - journald.conf's Compress= is yes/no/threshold

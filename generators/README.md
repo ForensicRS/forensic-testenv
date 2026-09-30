@@ -46,6 +46,11 @@ the `journalctl --output=json` oracle it captures alongside each file, register 
 `*.journal` (`format = "journal"`) and `*.journal.oracle.json` (`format = "json"`) with
 `tools/add_artifact.py --source synthetic --used-by frnsc-linux`.
 
+Unlike `utmp.py`, these files are **not** byte-reproducible run to run: every real journal
+file's header carries a randomized `file_id` (and `seqnum_id`, which defaults to it) with no
+way to pin it - see the script's header comment. They follow the same rule this README
+already states for `chrome_history.py`: generate once, register that one copy, pin it by hash.
+
 | file | exercises |
 |---|---|
 | `journal-plain.journal` | no compression, non-compact (8-byte offsets), non-keyed (Jenkins) hash - the oldest/simplest on-disk shape |
