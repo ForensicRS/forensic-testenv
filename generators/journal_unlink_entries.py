@@ -5,14 +5,26 @@ is the recovery-path fixture in generators/journal.sh's matrix: a parser that on
 array chain must miss the unlinked entries; a parser with a carving/recovery fallback must
 still find them.
 
+Unlinks from the TAIL of the chain (the last N populated item slots), not the head. Verified
+empirically against the real journalctl (systemd 257.13-1~deb13u1, see journal.sh) that this
+matters: zeroing a slot in the *middle* of an array (e.g. item 0 of a 3-item array) makes
+journalctl's own sequential reader drop every entry *after* the hole too - not just the
+targeted one - because its forward iteration apparently treats the first zero slot it meets
+as an implicit end-of-valid-data marker (the shape a still-filling array legitimately has),
+not as "this one entry is missing". That cascading-loss behavior is itself a real forensic
+finding worth knowing about (a naive recovery parser must expect "entries after a hole may
+also be unreachable via the index, not just the hole itself"), but it makes for a confusing
+*primary* recovery fixture. Unlinking the tail instead gives the clean, predictable shape the
+task actually asked for: N-1 entries visible through the index, 1 physically present but
+unreachable.
+
 Deliberately does NOT update Header.n_entries (or any hash table) to match: the mismatch
 between the header's claimed entry count and what the array walk actually reaches is itself
 a forensically useful tell, not something to paper over.
 
 Binary format below is transcribed from systemd's own
-src/libsystemd/sd-journal/journal-def.h (fetched from the systemd v255 tag; re-check against
-the version actually installed in the container before trusting this against anything other
-than the file this script's author last verified it against - see journal.sh). Only supports
+src/libsystemd/sd-journal/journal-def.h and cross-checked against the real, installed
+systemd 257.13-1~deb13u1 binaries (see journal.sh for how they're obtained). Only supports
 the non-compact, regular-item (8-byte offsets) EntryArrayObject layout; refuses (exit 1) a
 compact-mode file rather than silently doing the wrong thing.
 
@@ -59,9 +71,11 @@ def unlink(data: bytearray, n_to_unlink: int) -> int:
               file=sys.stderr)
         raise SystemExit(1)
 
-    unlinked = 0
+    # Walk the whole chain first and collect every populated item slot's offset, in order -
+    # so we can unlink from the tail instead of the head (see module docstring for why).
+    populated_slots = []
     array_offset = h["entry_array_offset"]
-    while array_offset and unlinked < n_to_unlink:
+    while array_offset:
         obj_type, _flags, size = obj_header(bytes(data), array_offset)
         if obj_type != OBJECT_ENTRY_ARRAY:
             raise ValueError(f"expected ENTRY_ARRAY at {array_offset:#x}, got type {obj_type}")
@@ -70,8 +84,6 @@ def unlink(data: bytearray, n_to_unlink: int) -> int:
         items_off = array_offset + OBJ_HEADER_SIZE + 8
         n_items = (size - OBJ_HEADER_SIZE - 8) // 8
         for i in range(n_items):
-            if unlinked >= n_to_unlink:
-                break
             item_off = items_off + i * 8
             (entry_offset,) = struct.unpack_from("<Q", data, item_off)
             if entry_offset == 0:
@@ -79,10 +91,13 @@ def unlink(data: bytearray, n_to_unlink: int) -> int:
             obj_type, _flags, _size = obj_header(bytes(data), entry_offset)
             if obj_type != OBJECT_ENTRY:
                 continue
-            struct.pack_into("<Q", data, item_off, 0)  # unlink: zero the slot, keep the ENTRY object's bytes untouched
-            unlinked += 1
+            populated_slots.append(item_off)
         array_offset = next_array
-    return unlinked
+
+    to_unlink = populated_slots[-n_to_unlink:] if n_to_unlink else []
+    for item_off in to_unlink:
+        struct.pack_into("<Q", data, item_off, 0)  # unlink: zero the slot, keep the ENTRY object's bytes untouched
+    return len(to_unlink)
 
 
 def main() -> None:

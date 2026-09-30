@@ -42,12 +42,30 @@ names and byte offsets match `crates/frnsc-linux/src/unix/utmp.rs` (`UtmpLayout:
 
 ### `journal.sh` - the `.journal` format matrix
 
-**Needs docker and network egress; has not been run for real yet** (written and
-syntax-checked, but not executed - see the warning at the top of the script for exactly what
-to double-check on the first real run). Once it has been run and its output inspected against
-the `journalctl --output=json` oracle it captures alongside each file, register each
-`*.journal` (`format = "journal"`) and `*.journal.oracle.json` (`format = "json"`) with
-`tools/add_artifact.py --source synthetic --used-by frnsc-linux`.
+**Run for real** (2026-09-30) - no docker/podman/root needed, contrary to the original plan:
+it extracts `systemd`/`systemd-journal-remote`/`libsystemd-shared`/`libmicrohttpd12t64`
+straight out of pinned Debian `.deb` packages (`dpkg-deb -x` into a local prefix, no privilege
+required) fetched by content hash from `snapshot.debian.org`, and runs them against the host's
+own already-present libc/libcap/etc. See the script's header comment for exactly how, and for
+two things the *first* real run found that the original (source-only) design got wrong:
+
+1. **`SYSTEMD_JOURNAL_COMPRESS` only takes yes/no, not an algorithm name.** The original plan
+   (read from systemd v255 source, never executed) assumed `lz4`/`xz`/`zstd`/`none` selected
+   among algorithms. Empirically, against the real 257.13-1~deb13u1 binary, any non-"no" string
+   means "compress=true" - so `lz4`/`xz`/`zstd`/`none` all behaved identically. Worse: this
+   build never writes anything but ZSTD when compression is on (verified by inspecting the
+   DATA object flags byte). There is no working way to make it write a genuinely LZ4- or
+   XZ-compressed object, so the matrix has one compressed/uncompressed axis
+   (`journal-uncompressed.journal` / `journal-compressed.journal`), not one file per algorithm.
+   A parser's LZ4/XZ *read* path still needs covering, but from real old-systemd samples or a
+   hand-built unit fixture - not this generator.
+2. **`journalctl --output=json` needs `--all` for ground truth**, or it silently reports large
+   field values as JSON `null` (confirmed: without `--all`, the zip-bomb fixture's 64 MiB
+   `MESSAGE` comes back `null`). Every oracle here is captured with `--all` *except*
+   `journal-zip-bomb.journal.oracle.json`, which deliberately uses the default (no `--all`)
+   output - the alternative is a ~67 MB committed JSON file for a repo that otherwise measures
+   fixtures in KiB, and the default output is also literally what an analyst piping journalctl
+   without extra flags would see.
 
 Unlike `utmp.py`, these files are **not** byte-reproducible run to run: every real journal
 file's header carries a randomized `file_id` (and `seqnum_id`, which defaults to it) with no
@@ -56,21 +74,22 @@ already states for `chrome_history.py`: generate once, register that one copy, p
 
 | file | exercises |
 |---|---|
-| `journal-plain.journal` | no compression, non-compact (8-byte offsets), non-keyed (Jenkins) hash - the oldest/simplest on-disk shape |
-| `journal-lz4.journal` / `-zstd.journal` / `-xz.journal` | each of the three compression algorithms the format supports (`SYSTEMD_JOURNAL_COMPRESS`) |
+| `journal-plain.journal` | baseline: no compression, non-compact (8-byte offsets), non-keyed (Jenkins) hash, 3 short entries - the oldest/simplest on-disk shape |
+| `journal-uncompressed.journal` | a 2320-byte compressible `MESSAGE` (a repeated traceback, well over the real ~504-byte compression threshold - bisected against the real binary, not assumed) written with `--compress=no`: DATA object lands uncompressed at 2392 bytes on disk |
+| `journal-compressed.journal` | the same 2320-byte `MESSAGE`, written with `--compress=yes`: DATA object carries `OBJECT_COMPRESSED_ZSTD` and shrinks to 229 bytes on disk - the genuine on-disk A/B this pairs with `journal-uncompressed.journal` to demonstrate |
 | `journal-compact.journal` | `HEADER_INCOMPATIBLE_COMPACT`: 4-byte offsets in DATA/ENTRY objects instead of 8 |
 | `journal-keyed-hash.journal` | `HEADER_INCOMPATIBLE_KEYED_HASH`: siphash24 instead of Jenkins |
-| `journal-online-stale.journal` | `systemd-journal-remote` killed mid-write, before it closes the file: header `State` byte stays `ONLINE` (1) rather than `ARCHIVED` (2), with tail pointers as they stood at the last write, not a clean shutdown - what imaging a running host actually looks like |
-| `journal-truncated.journal` | `journal-plain.journal` cut off 37 bytes short - mid-object at EOF |
-| `journal-unlinked-entries.journal` | one ENTRY object deliberately unreachable via the main entry-array chain (the array slot zeroed, the object's bytes untouched) - the recovery-path fixture. `journal_unlink_entries.py` leaves the header's `n_entries` unchanged on purpose, so the mismatch between the claimed count and what a chain-walk reaches is itself a signal, and a parser needs a carving/recovery fallback to find this entry at all |
-| `journal-non-utf8.journal` | one entry's `MESSAGE` field is not valid UTF-8 |
-| `journal-zip-bomb.journal` | one entry's `MESSAGE` field is 64 MiB of a single repeated byte - compresses to a few KiB, so the file stays small while the DATA object's declared (decompressed) size is large; exercises a bounded-decompression guard rather than a naive "allocate declared size" decompressor |
+| `journal-online-stale.journal` | `systemd-journal-remote` killed mid-write, before it closes the file: header `State` byte stays `ONLINE` (1) rather than `ARCHIVED` (2), with tail pointers as they stood at the last write, not a clean shutdown - what imaging a running host actually looks like. Confirmed by reading the header byte directly |
+| `journal-truncated.journal` | `journal-plain.journal` cut off 37 bytes short - mid-object at EOF. `journalctl` itself refuses it outright (`Failed to open files: No data available`), captured as the `.oracle.stderr` alongside an empty `.oracle.json` - a parser needs its own recovery path, the real tool doesn't have one here |
+| `journal-unlinked-entries.journal` | entry #3 of 3 deliberately unreachable via the main entry-array chain (the array's last populated slot zeroed, the ENTRY object's bytes untouched) - the recovery-path fixture. `journal_unlink_entries.py` leaves the header's `n_entries` unchanged on purpose, so the mismatch between the claimed count (3) and what a chain-walk reaches (2) is itself a signal. Confirmed against the real `journalctl`: it shows only entries 1-2. **Deliberately unlinks the tail, not an earlier entry** - unlinking entry #1 of 3 was tried first and found to make `journalctl`'s own sequential reader drop entry #3 too (a zeroed slot followed by populated ones apparently reads as "end of valid data", not "one hole"); that cascading-loss behavior is real and worth knowing for a recovery parser, but makes a confusing *primary* fixture, so it's documented in `journal_unlink_entries.py`'s docstring instead of shipped as the main case |
+| `journal-non-utf8.journal` | one entry's `MESSAGE` field is not valid UTF-8. `journalctl`'s own JSON oracle represents it as an array of raw byte integers, not a string - useful to know what the reference tool does with this case |
+| `journal-zip-bomb.journal` | one entry's `MESSAGE` field is 64 MiB of a single repeated byte, ZSTD-compresses to 229 bytes on disk - but the **file itself is not small**: `systemd-journal-remote` pre-grows the on-disk arena to 72 MiB while producing it (confirmed non-sparse: real allocated zero bytes past the tiny compressed object, not a hole). So this is a two-layer bounded-decompression case: a parser trusting the *declared* 64 MiB field size needs a decompression guard, and one trusting the file's own *size* or `arena_size` as an allocation hint is still over-allocating ~70x what the real content needs |
 
 Every file above is `ARCHIVED` state on a clean run except `journal-online-stale.journal`.
-`journal-plain.journal` (non-keyed hash, i.e. Jenkins) also stands in for the "non-keyed"
-half of the KEYED_HASH/non-keyed pair the design doc asks for, rather than duplicating a
-whole extra file that would only differ in one flag already covered by
-`journal-keyed-hash.journal`.
+`journal-plain.journal` (non-keyed hash, i.e. Jenkins, uncompressed by construction since its
+messages never cross the compression threshold) also stands in for the "non-keyed" half of the
+KEYED_HASH/non-keyed pair the design doc asks for, rather than duplicating a whole extra file
+that would only differ in one flag already covered by `journal-keyed-hash.journal`.
 
 ### Text logs (`textlogs/`)
 

@@ -9,10 +9,9 @@ Format: https://systemd.io/JOURNAL_EXPORT_FORMATS/
   a blank line ends one entry
 
 __REALTIME_TIMESTAMP/__MONOTONIC_TIMESTAMP/_BOOT_ID are provided explicitly so every fixture
-has a deterministic, known timestamp - verify on the first real run that the local (stdin,
-non-network) invocation of systemd-journal-remote honors them rather than regenerating them;
-the export format is documented as a round-trip of `journalctl -o export`, which implies it
-should, but this repo has not yet run systemd-journal-remote for real (see journal.sh).
+has a deterministic, known timestamp - confirmed against the real binary (systemd
+257.13-1~deb13u1, see journal.sh) that local stdin conversion honors the supplied
+__REALTIME_TIMESTAMP exactly (round-tripped byte-for-byte through journalctl --output=json).
 """
 import struct
 import sys
@@ -55,6 +54,24 @@ def standard() -> bytes:
     return b"".join(entry(us, f) for us, f in STANDARD_ENTRIES)
 
 
+def large_message() -> bytes:
+    """One entry whose MESSAGE is long enough (~2.3 KiB) to cross systemd-journal-remote's real
+    compression threshold - empirically bisected against the actual installed binary (systemd
+    257.13-1~deb13u1, see journal.sh) at >503 and <=504 bytes of field payload, i.e. close to
+    the commonly-cited "512 bytes" figure but confirmed by testing rather than assumed from it.
+    STANDARD_ENTRIES' short human messages never cross this threshold, so they're compression-
+    axis-blind no matter what compression setting is requested - this row exists so the
+    compressed/uncompressed pair of fixtures actually differs on disk."""
+    frame = ("  File \"/opt/app/worker.py\", line 142, in process_job\n"
+             "    raise ValueError(f\"invalid payload for job {job_id}\")\n")
+    msg = "Traceback (most recent call last):\n" + frame * 20 + "ValueError: invalid payload for job 8f3c2a91\n"
+    # field() only uses the length-prefixed binary form for bytes values; a multi-line str
+    # would go through the single-line NAME=value form and corrupt the Export Format stream
+    # (each embedded newline reads as a field/entry boundary) - encode explicitly.
+    return entry(BASE_US, [("MESSAGE", msg.encode()), ("PRIORITY", "3"), ("SYSLOG_IDENTIFIER", "worker"),
+                            ("_PID", "4242"), ("_COMM", "worker"), ("_HOSTNAME", "fw01")])
+
+
 def non_utf8_field() -> bytes:
     """One entry whose MESSAGE is raw bytes containing an invalid UTF-8 sequence (0xFC lead
     byte, as in generators/utmp.py's non-UTF-8 fixture) - written with the binary field form
@@ -66,10 +83,19 @@ def non_utf8_field() -> bytes:
 
 def zip_bomb_field(uncompressed_size: int = 64 * 1024 * 1024) -> bytes:
     """One entry with a MESSAGE field that is highly compressible (a run of one byte), well
-    over journald's ~512-byte compression threshold. Compresses to a few KiB with any of
-    xz/lz4/zstd, so the .journal file stays small while the DATA object's declared
-    (decompressed) size is large - exactly the shape a bounded-decompression guard must
-    reject-or-cap rather than blindly allocate."""
+    over systemd-journal-remote's real, empirically-measured ~504-byte compression threshold
+    (see large_message()). Confirmed on the real binary: the DATA object itself compresses to
+    ~2 KiB (ZSTD - the only algorithm this systemd build actually writes with, see journal.sh),
+    but the .journal FILE does not stay small - systemd-journal-remote pre-grows the file's
+    on-disk arena to ~72 MiB while producing it (verified: not a sparse hole, real allocated
+    zero bytes past the tiny compressed object), presumably as scratch space for the
+    compression codec rather than a reflection of final content size. So the "zip bomb" shape
+    here is two-layered: a parser that trusts the *declared* 64 MiB uncompressed field size
+    needs a bounded-decompression guard, and one that trusts the file's own *on-disk* size or
+    arena_size as an allocation hint is still over-allocating ~72x what the real content (a few
+    KiB) needs. journalctl's own default `--output=json` (without --all) reports this field as
+    JSON null rather than the actual value - the oracle for this fixture must be captured with
+    `--all` or it silently under-represents ground truth."""
     payload = b"A" * uncompressed_size
     return entry(BASE_US, [("MESSAGE", payload), ("PRIORITY", "6"),
                             ("SYSLOG_IDENTIFIER", "app"), ("_PID", "999"), ("_COMM", "app"),
@@ -78,6 +104,7 @@ def zip_bomb_field(uncompressed_size: int = 64 * 1024 * 1024) -> bytes:
 
 ROWS = {
     "standard": standard,
+    "large-message": large_message,
     "non-utf8": non_utf8_field,
     "zip-bomb": zip_bomb_field,
 }

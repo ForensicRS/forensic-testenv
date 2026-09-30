@@ -1189,3 +1189,283 @@ size = 2304
 license = "MIT"
 redistributable = true
 used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-plain-synthetic"
+description = "Baseline .journal (no compression, non-compact 8-byte offsets, non-keyed/Jenkins hash) with 3 realistic entries, made with real systemd-journal-remote 257.13-1~deb13u1"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-plain-synthetic/journal-plain.journal"
+filename = "journal-plain.journal"
+sha256 = "59771721e713d71aad2023d2dd9cc910d5c4e0d30daf0f35106f6164abe54cd5"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-plain-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-plain-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-plain-synthetic-oracle/journal-plain.journal.oracle.json"
+filename = "journal-plain.journal.oracle.json"
+sha256 = "1235fa80c51298f6b41756d0532971c4542b935972e98f8140fa23f389854d01"
+size = 1453
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-uncompressed-synthetic"
+description = "Same format axis as journal-plain but with a 2320-byte compressible MESSAGE (a repeated traceback) explicitly written with --compress=no, to pair with journal-compressed as a genuine on-disk compression A/B"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-uncompressed-synthetic/journal-uncompressed.journal"
+filename = "journal-uncompressed.journal"
+sha256 = "acfe234019b01897788532caf7e39bc4df5eef27785eaa59bef7577e9bcf68da"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-uncompressed-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-uncompressed-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-uncompressed-synthetic-oracle/journal-uncompressed.journal.oracle.json"
+filename = "journal-uncompressed.journal.oracle.json"
+sha256 = "8ceb2cf9311ebc06ee4372b98fd9f52f54074dc050b4d5bec64dad07f4bae3c9"
+size = 2884
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-compressed-synthetic"
+description = "Same 2320-byte MESSAGE as journal-uncompressed but written with --compress=yes: DATA object carries OBJECT_COMPRESSED_ZSTD and shrinks from 2392 to 229 bytes on disk. This systemd build only ever writes ZSTD (see generators/journal.sh); there is no working way to select LZ4/XZ for newly-written files"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-compressed-synthetic/journal-compressed.journal"
+filename = "journal-compressed.journal"
+sha256 = "b679a415ff9930417bfc9826e730c15af052437a7152025608a86ca0d3930aaa"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-compressed-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-compressed-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-compressed-synthetic-oracle/journal-compressed.journal.oracle.json"
+filename = "journal-compressed.journal.oracle.json"
+sha256 = "6b4be78888529653a4e3ef972533b3e2ad96775757a01a0890417475d08d414a"
+size = 2884
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-compact-synthetic"
+description = "HEADER_INCOMPATIBLE_COMPACT set (4-byte offsets in DATA/ENTRY objects)"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-compact-synthetic/journal-compact.journal"
+filename = "journal-compact.journal"
+sha256 = "f5a014edb2c44484379b84ccdfcaf570adbf9ce7648f0088a7d48f8951b768aa"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-compact-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-compact-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-compact-synthetic-oracle/journal-compact.journal.oracle.json"
+filename = "journal-compact.journal.oracle.json"
+sha256 = "dc1a8ba627f2151a57192ef6a11f9872260956bc76fdf3b68f4be0c10774fc1d"
+size = 1453
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-keyed-hash-synthetic"
+description = "HEADER_INCOMPATIBLE_KEYED_HASH set (siphash24 instead of Jenkins)"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-keyed-hash-synthetic/journal-keyed-hash.journal"
+filename = "journal-keyed-hash.journal"
+sha256 = "fdfbe49e0cd6599eecdad04b9b3d8ea2439bbe50d5dc615b0032242fda6f0fac"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-keyed-hash-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-keyed-hash-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-keyed-hash-synthetic-oracle/journal-keyed-hash.journal.oracle.json"
+filename = "journal-keyed-hash.journal.oracle.json"
+sha256 = "da4ce7aec0c553df6592146cd4729cfcfcdf041b74327e9b9c0e5d39c8963008"
+size = 1453
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-online-stale-synthetic"
+description = "systemd-journal-remote killed mid-write before it closes the file: header State byte stays ONLINE(1) with tail pointers as they stood at last write, not a clean ARCHIVED(2) shutdown - what imaging a running host looks like"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-online-stale-synthetic/journal-online-stale.journal"
+filename = "journal-online-stale.journal"
+sha256 = "bd3264c1afc0d2775e560e3a733486e19e62199b02b3c9802361eeffdec9f15f"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-online-stale-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-online-stale-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-online-stale-synthetic-oracle/journal-online-stale.journal.oracle.json"
+filename = "journal-online-stale.journal.oracle.json"
+sha256 = "0116e695ef5d7e1282f750deee5308f731355470201ff01f4ba6c4b710a78879"
+size = 1453
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-truncated-synthetic"
+description = "journal-plain.journal cut off 37 bytes short, mid-object at EOF"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-truncated-synthetic/journal-truncated.journal"
+filename = "journal-truncated.journal"
+sha256 = "9bcb80fb28ed9102b056e99689b03097ac876d3d65fb36987d7090b6c9fddd16"
+size = 8388571
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-truncated-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-truncated-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-truncated-synthetic-oracle/journal-truncated.journal.oracle.json"
+filename = "journal-truncated.journal.oracle.json"
+sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+size = 0
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-unlinked-entries-synthetic"
+description = "Entry #3 of 3 deliberately unlinked from the main entry-array chain (slot zeroed, ENTRY object bytes untouched, header n_entries left at 3 on purpose) - the recovery-path fixture: journalctl's own indexed read shows only entries 1-2"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-unlinked-entries-synthetic/journal-unlinked-entries.journal"
+filename = "journal-unlinked-entries.journal"
+sha256 = "468d15e99362b41d1719bcfa449c34ed0f1bc492f20d3d7e0163c181d82c6ec5"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-unlinked-entries-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-unlinked-entries-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-unlinked-entries-synthetic-oracle/journal-unlinked-entries.journal.oracle.json"
+filename = "journal-unlinked-entries.journal.oracle.json"
+sha256 = "553142b654f1c4663a586cd16d663ad3eb4c6564c21e29929124d14b0fe69d66"
+size = 975
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-non-utf8-synthetic"
+description = "One entry's MESSAGE is not valid UTF-8 (raw Latin-1 byte via the length-prefixed binary field form)"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-non-utf8-synthetic/journal-non-utf8.journal"
+filename = "journal-non-utf8.journal"
+sha256 = "8e0e6d2a82c6c4e36fece553b79e6573df700ad91d17a5b50f009871c7841106"
+size = 8388608
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-non-utf8-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-non-utf8-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-non-utf8-synthetic-oracle/journal-non-utf8.journal.oracle.json"
+filename = "journal-non-utf8.journal.oracle.json"
+sha256 = "201142fdf82610e21a1f620b7846e73a2122d81f1a6063681988493ca5c060f9"
+size = 529
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-zip-bomb-synthetic"
+description = "One entry's MESSAGE is 64 MiB of a single repeated byte, ZSTD-compresses to 229 bytes on disk - but systemd-journal-remote pre-grows the file's actual on-disk arena to 72 MiB while producing it (verified non-sparse), so both the declared-size and the file's-own-size are misleading size hints for a bounded-decompression/allocation guard"
+format = "journal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/journal/linux-journal-zip-bomb-synthetic/journal-zip-bomb.journal"
+filename = "journal-zip-bomb.journal"
+sha256 = "19280c5bf09392accb4c9929b11919ff016fd7c053325ea47c43b07b0883e87e"
+size = 75497472
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-journal-zip-bomb-synthetic-oracle"
+description = "journalctl --output=json (--all except journal-zip-bomb, see generators/journal.sh) ground truth for linux-journal-zip-bomb-synthetic"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-journal-zip-bomb-synthetic-oracle/journal-zip-bomb.journal.oracle.json"
+filename = "journal-zip-bomb.journal.oracle.json"
+sha256 = "816514d57d0ea5e96aca609eb1303f8e3e59e2b180c39aafc648525746a139f2"
+size = 437
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
