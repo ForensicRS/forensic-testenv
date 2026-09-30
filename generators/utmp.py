@@ -1,38 +1,45 @@
 #!/usr/bin/env python3
 """Generate Linux utmp/wtmp/btmp-format fixtures with known contents.
 
-All three files (utmp, wtmp, btmp) share one binary record format defined by glibc's
-`struct utmp` (bits/utmp.h); only the conventional path and the ut_type values written to it
-differ. See UTMP_FMT below for the verified field layout.
+All three files (utmp, wtmp, btmp) share one binary record format, in one of two layouts.
+Field offsets and both layouts match `crates/frnsc-linux/src/unix/utmp.rs` exactly (that
+module cites libyal/dtformats's "Utmp login records format" as its reference) - this
+generator exists to give that crate's `real_samples.rs` (`artifact_or_skip!("frnsc-linux-utmp-sample")`)
+and its `UtmpLayout::Wide64` path something real to run against, not just the inline byte
+arrays its unit tests build.
 
-## Why there is no real 32-bit/64-bit difference
-
-glibc deliberately keeps `ut_session` and `ut_tv` at a fixed 32-bit width on every
-architecture and word size, specifically so utmp/wtmp/btmp files are binary-compatible
-between 32-bit and 64-bit processes on the same (multiarch) system - see the comment above
-`ut_session` in bits/utmp.h: "The ut_session and ut_tv fields must be the same size when
-compiled 32- and 64-bit. This allows data files and shared memory to be shared between 32-
-and 64-bit applications." Verified here by compiling a throwaway C program against the glibc
-on this host and comparing its raw `fwrite(&u, sizeof(u), 1, f)` output, byte for byte,
-against UTMP_FMT's `struct.pack` output (both sizeof == 384, identical bytes for identical
-field values).
-
-So `wtmp_lp64.bin` and `wtmp_ilp32.bin` below are intentionally byte-identical: the fixture
-pair exists to pin that invariant (a parser must not key its record layout off a reported
-word size) rather than to exercise two different byte layouts. A parser bug that decides
-record size from ELF bitness metadata instead of trusting the fixed 384-byte record would
-pass one and quietly misparse the other only if it also mis-detected word size from
-context - this pair catches the "assumed 400-byte record on 64-bit" mistake some ports of
-older non-Linux utmp readers make.
+* Narrow32 (RECORD_SIZE_32 = 384 bytes): session/tv_sec/tv_usec as 4-byte fields. Used by
+  both 32-bit Linux and by 64-bit x86/x86_64 glibc, which deliberately keeps these fields
+  32-bit-wide on every word size (see bits/utmp.h's comment on `ut_session`) so the format
+  stays byte-identical between 32- and 64-bit readers. This is what the overwhelming
+  majority of real (x86/x86_64 Linux) evidence uses - verified here by compiling a
+  throwaway C program against this host's glibc and comparing its raw `fwrite(&u,
+  sizeof(u), 1, f)` output, byte for byte, against NARROW32_FMT's `struct.pack` output.
+* Wide64 (RECORD_SIZE_64 = 400 bytes): session/tv_sec/tv_usec widened to 8 bytes each,
+  reserved tail grown from 20 to 24 bytes. Not produced by current Linux/glibc on this
+  host, but frnsc-linux's module doc is explicit that "architectures that do not keep the
+  32-bit-compatible layout" produce this - not exercisable against this sandbox's own
+  glibc, so unlike NARROW32_FMT this layout is NOT cross-checked against a real C struct
+  here; it is transcribed directly from frnsc-linux's own byte-offset table, which is the
+  authoritative spec for this repo's consumer.
 
 Writes to generators/out/utmp/:
-  wtmp_lp64.bin / wtmp_lp64.truth.json      6-record login/logout/boot sequence
-  wtmp_ilp32.bin                            byte-identical to wtmp_lp64.bin (see above)
-  wtmp_bad_utf8.bin / .truth.json           same sequence, one record's ut_user is not
-                                             valid UTF-8 (a raw Latin-1 byte, not a UTF-8
-                                             continuation byte)
-  wtmp_truncated.bin / .truth.json          the 6 good records followed by a dangling
-                                             partial record (200 of 384 bytes) at EOF
+  wtmp_narrow32.bin / .truth.json      6-record login/logout/boot sequence, Narrow32
+  wtmp_wide64.bin / .truth.json        the same 6 records, Wide64
+  wtmp_bad_utf8.bin / .truth.json      same sequence (Narrow32), one record's ut_user is
+                                        not valid UTF-8 (a raw Latin-1 byte, not a UTF-8
+                                        continuation byte)
+  wtmp_truncated.bin / .truth.json     the 6 good Narrow32 records followed by a dangling
+                                        partial record (200 of 384 bytes) at EOF
+  wtmp_wide64_truncated.bin / .truth.json
+                                        one good Wide64 record followed by 50 trailing
+                                        bytes - the exact shape of frnsc-linux's pinned
+                                        regression test
+                                        `a_wide64_file_truncated_mid_record_is_misdetected_as_narrow32`:
+                                        length (450) is a multiple of neither 384 nor 400,
+                                        so `detect_layout` defaults to Narrow32 and misreads
+                                        the tail of the one real record as a second, garbage
+                                        one
 """
 import json
 import socket
@@ -41,17 +48,17 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent / "out" / "utmp"
 
-# Verified byte-exact against a real `struct utmp` from this host's glibc (see module
-# docstring). '<' = explicit little-endian, no compiler padding assumptions.
-#   h    ut_type                    2x   4-byte alignment pad before ut_pid
-#   i    ut_pid                     32s  ut_line   4s  ut_id   32s  ut_user   256s  ut_host
-#   h h  ut_exit.{e_termination,e_exit}
-#   i    ut_session (int32, not `long` - see above)
-#   I i  ut_tv.{tv_sec (uint32), tv_usec (int32)}
-#   4i   ut_addr_v6                 20s  __glibc_reserved
-UTMP_FMT = "<h2xi32s4s32s256shhiIi4i20s"
-RECORD_SIZE = struct.calcsize(UTMP_FMT)
-assert RECORD_SIZE == 384
+# Offsets 0-335 are identical between both layouts. '<' = explicit little-endian, no
+# compiler padding assumptions.
+#   i    ut_type                     i    ut_pid
+#   32s  ut_line    4s  ut_id    32s  ut_user    256s  ut_host
+#   h h  termination_status, exit_status
+NARROW32_FMT = "<ii32s4s32s256shh" + "iii" + "4i" + "20s"   # session/tv_sec/tv_usec: i32 each
+WIDE64_FMT = "<ii32s4s32s256shh" + "qqq" + "4i" + "24s"     # session/tv_sec/tv_usec: i64 each
+RECORD_SIZE_32 = struct.calcsize(NARROW32_FMT)
+RECORD_SIZE_64 = struct.calcsize(WIDE64_FMT)
+assert RECORD_SIZE_32 == 384
+assert RECORD_SIZE_64 == 400
 
 EMPTY, RUN_LVL, BOOT_TIME, LOGIN_PROCESS, USER_PROCESS, DEAD_PROCESS = 0, 1, 2, 6, 7, 8
 TYPE_NAMES = {0: "EMPTY", 1: "RUN_LVL", 2: "BOOT_TIME", 3: "NEW_TIME", 4: "OLD_TIME",
@@ -67,12 +74,13 @@ def ipv4_addr_v6(dotted: str | None) -> tuple[int, int, int, int]:
     return (struct.unpack("<i", raw)[0], 0, 0, 0)
 
 
-def pack_record(ut_type: int, pid: int, line: bytes, ident: bytes, user: bytes, host: bytes,
-                 e_term: int, e_exit: int, session: int, tv_sec: int, tv_usec: int,
-                 addr: str | None) -> bytes:
+def pack_record(layout: str, ut_type: int, pid: int, line: bytes, ident: bytes, user: bytes,
+                 host: bytes, e_term: int, e_exit: int, session: int, tv_sec: int,
+                 tv_usec: int, addr: str | None) -> bytes:
     a0, a1, a2, a3 = ipv4_addr_v6(addr)
-    return struct.pack(UTMP_FMT, ut_type, pid, line, ident, user, host, e_term, e_exit,
-                        session, tv_sec, tv_usec, a0, a1, a2, a3, b"")
+    fmt = NARROW32_FMT if layout == "narrow32" else WIDE64_FMT
+    return struct.pack(fmt, ut_type, pid, line, ident, user, host, e_term, e_exit,
+                        session, tv_sec, tv_usec, a0, a1, a2, a3, b"")  # 's' fields zero-pad
 
 
 # (ut_type, pid, line, id, user, host, e_term, e_exit, session, tv_sec, tv_usec, addr)
@@ -87,7 +95,11 @@ RECORDS = [
 ]
 
 
-def truth_for(records) -> dict:
+def pack_all(layout: str, records) -> bytes:
+    return b"".join(pack_record(layout, *r) for r in records)
+
+
+def truth_for(layout: str, records) -> dict:
     rows = []
     for ut_type, pid, line, ident, user, host, e_term, e_exit, session, tv_sec, tv_usec, addr in records:
         rows.append({
@@ -97,7 +109,8 @@ def truth_for(records) -> dict:
             "e_termination": e_term, "e_exit": e_exit, "ut_session": session,
             "tv_sec": tv_sec, "tv_usec": tv_usec, "addr_v4": addr,
         })
-    return {"record_size": RECORD_SIZE, "records": rows}
+    size = RECORD_SIZE_32 if layout == "narrow32" else RECORD_SIZE_64
+    return {"layout": layout, "record_size": size, "records": rows}
 
 
 def write(name: str, data: bytes, truth: dict | None) -> None:
@@ -110,10 +123,11 @@ def write(name: str, data: bytes, truth: dict | None) -> None:
 
 
 def main() -> None:
-    good = b"".join(pack_record(*r) for r in RECORDS)
-    write("wtmp_lp64.bin", good, truth_for(RECORDS))
-    # See module docstring: intentionally byte-identical to wtmp_lp64.bin.
-    write("wtmp_ilp32.bin", good, None)
+    narrow_good = pack_all("narrow32", RECORDS)
+    write("wtmp_narrow32.bin", narrow_good, truth_for("narrow32", RECORDS))
+
+    wide_good = pack_all("wide64", RECORDS)
+    write("wtmp_wide64.bin", wide_good, truth_for("wide64", RECORDS))
 
     # 0xFC is not a valid UTF-8 leading byte (max valid lead is 0xF4); everything else in the
     # record is untouched so a parser must isolate the failure to this one field.
@@ -122,19 +136,37 @@ def main() -> None:
     r = list(bad_records[3])
     r[4] = bad_user.ljust(32, b"\x00")
     bad_records[3] = tuple(r)
-    bad_data = b"".join(pack_record(*r) for r in bad_records)
-    bad_truth = truth_for(RECORDS)
+    bad_data = pack_all("narrow32", bad_records)
+    bad_truth = truth_for("narrow32", RECORDS)
     bad_truth["records"][3]["ut_user"] = None
     bad_truth["records"][3]["ut_user_raw_hex"] = bad_user.hex()
     bad_truth["records"][3]["note"] = "ut_user is not valid UTF-8 (0xFC is not a valid lead byte)"
     write("wtmp_bad_utf8.bin", bad_data, bad_truth)
 
-    # 6 good records, then a dangling record cut off at 200 of 384 bytes (mid ut_host).
-    trailing = pack_record(*RECORDS[0])[:200]
-    trunc_data = good + trailing
-    trunc_truth = truth_for(RECORDS)
+    # 6 good Narrow32 records, then a dangling record cut off at 200 of 384 bytes (mid ut_host).
+    trailing = pack_record("narrow32", *RECORDS[0])[:200]
+    trunc_data = narrow_good + trailing
+    trunc_truth = truth_for("narrow32", RECORDS)
     trunc_truth["trailing_partial_record_bytes"] = len(trailing)
     write("wtmp_truncated.bin", trunc_data, trunc_truth)
+
+    # One good Wide64 record + 50 trailing bytes = 450 bytes: a multiple of neither 384 nor
+    # 400, so frnsc-linux's detect_layout() defaults to Narrow32 (see its docs) and misreads
+    # this as one garbage-tailed Narrow32 record instead of "one Wide64 record, truncated".
+    wide_trailing = pack_record("wide64", *RECORDS[3])[:50]
+    wide_trunc_data = pack_record("wide64", *RECORDS[3]) + wide_trailing
+    assert len(wide_trunc_data) == 450
+    wide_trunc_truth = {
+        "layout_written_as": "wide64",
+        "layout_detected_by_frnsc_linux": "narrow32 (see detect_layout's docs - this is the pinned misdetection case)",
+        "bytes": len(wide_trunc_data),
+        "one_whole_wide64_record": truth_for("wide64", [RECORDS[3]])["records"][0],
+        "note": "real length (450) is a multiple of neither RECORD_SIZE_32 (384) nor "
+                "RECORD_SIZE_64 (400); frnsc-linux's detect_layout defaults to Narrow32, so "
+                "fields before offset 332 (ut_user etc.) still read correctly but tv_sec and "
+                "everything after come out wrong",
+    }
+    write("wtmp_wide64_truncated.bin", wide_trunc_data, wide_trunc_truth)
 
     for f in sorted(OUT.iterdir()):
         print(f, f.stat().st_size, "bytes")

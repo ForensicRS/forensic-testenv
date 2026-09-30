@@ -28,14 +28,17 @@ from running known binaries. Commit the script that produced them next to this R
 
 ### `utmp.py` - wtmp/utmp/btmp records
 
-Pure `struct.pack`, no container needed. Run directly: `python3 generators/utmp.py`.
+Pure `struct.pack`, no container needed. Run directly: `python3 generators/utmp.py`. Layout
+names and byte offsets match `crates/frnsc-linux/src/unix/utmp.rs` (`UtmpLayout::Narrow32` /
+`::Wide64`) exactly - that module is the actual, already-reviewed consumer of these fixtures.
 
 | file | exercises |
 |---|---|
-| `wtmp_lp64.bin` | the baseline 384-byte glibc record (BOOT_TIME, RUN_LVL, LOGIN_PROCESS, 2x USER_PROCESS, DEAD_PROCESS) |
-| `wtmp_ilp32.bin` | byte-identical to `wtmp_lp64.bin` on purpose - glibc fixes `ut_session`/`ut_tv` at 32 bits on every word size specifically so 32- and 64-bit processes share one wtmp format (see the script's docstring). A parser that infers record size from reported host word size rather than trusting the fixed 384-byte layout will misparse this pair inconsistently with itself. |
+| `wtmp_narrow32.bin` | the 384-byte layout (`session`/`tv_sec`/`tv_usec` as 4-byte fields) that the overwhelming majority of real x86/x86_64 Linux evidence uses. Also registered as `frnsc-linux-utmp-sample`, the id `frnsc-linux/tests/real_samples.rs` already calls `artifact_or_skip!` with. 6 records: BOOT_TIME, RUN_LVL, LOGIN_PROCESS, 2x USER_PROCESS, DEAD_PROCESS |
+| `wtmp_wide64.bin` | the same 6 records, 400-byte layout (`session`/`tv_sec`/`tv_usec` widened to 8 bytes) - `UtmpLayout::Wide64`'s only non-unit-test fixture |
 | `wtmp_bad_utf8.bin` | one record's `ut_user` is not valid UTF-8 (a raw Latin-1 byte, not a UTF-8 continuation byte) - the rest of the record is untouched, so a correct parser isolates the failure to one field, not the whole record |
-| `wtmp_truncated.bin` | 6 good records followed by a dangling record cut off at 200 of 384 bytes - the stream must yield 6 good records and one `Err`, not panic or silently drop the tail |
+| `wtmp_truncated.bin` | 6 good Narrow32 records followed by a dangling record cut off at 200 of 384 bytes - the stream must yield 6 good records and one `Err`, not panic or silently drop the tail |
+| `wtmp_wide64_truncated.bin` | one good Wide64 record (400 bytes) plus 50 trailing bytes = 450, a multiple of neither 384 nor 400 - the real-file shape of `frnsc-linux`'s pinned regression test `a_wide64_file_truncated_mid_record_is_misdetected_as_narrow32`: `detect_layout` defaults to Narrow32, so `ut_user` (before offset 336) still reads right but `tv_sec` comes out wrong |
 
 ### `journal.sh` - the `.journal` format matrix
 

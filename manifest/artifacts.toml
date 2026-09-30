@@ -925,50 +925,8 @@ redistributable = false
 used_by = []
 
 [[artifact]]
-id = "linux-wtmp-synthetic-lp64"
-description = "wtmp-format login/logout/boot sequence (6 records: BOOT_TIME, RUN_LVL, LOGIN_PROCESS, 2x USER_PROCESS, DEAD_PROCESS), glibc 384-byte record layout; truth in linux-wtmp-synthetic-lp64-truth"
-format = "utmp"
-source = "synthetic"
-tier = "ci"
-hf_path = "synthetic/utmp/linux-wtmp-synthetic-lp64/wtmp_lp64.bin"
-filename = "wtmp_lp64.bin"
-sha256 = "2bdf20164da59609e120b6e9e45dda9c671fdcb5ea2f3bce0e252319f44b4496"
-size = 2304
-license = "MIT"
-redistributable = true
-used_by = ["frnsc-linux"]
-
-[[artifact]]
-id = "linux-wtmp-synthetic-lp64-truth"
-description = "Expected records of linux-wtmp-synthetic-lp64"
-format = "json"
-source = "synthetic"
-tier = "ci"
-hf_path = "synthetic/json/linux-wtmp-synthetic-lp64-truth/wtmp_lp64.truth.json"
-filename = "wtmp_lp64.truth.json"
-sha256 = "7b8c52494472e11e930543caf5046c74f6da1bcd1d94e3c70bcee8f09459fe54"
-size = 2007
-license = "MIT"
-redistributable = true
-used_by = ["frnsc-linux"]
-
-[[artifact]]
-id = "linux-wtmp-synthetic-ilp32"
-description = "Same records as linux-wtmp-synthetic-lp64, labeled as a 32-bit build's wtmp: glibc keeps ut_session/ut_tv at a fixed 32-bit width on every word size, so this file is intentionally byte-identical to linux-wtmp-synthetic-lp64 (see generators/utmp.py docstring) - the pair pins that invariant rather than exercising two different layouts"
-format = "utmp"
-source = "synthetic"
-tier = "ci"
-hf_path = "synthetic/utmp/linux-wtmp-synthetic-ilp32/wtmp_ilp32.bin"
-filename = "wtmp_ilp32.bin"
-sha256 = "2bdf20164da59609e120b6e9e45dda9c671fdcb5ea2f3bce0e252319f44b4496"
-size = 2304
-license = "MIT"
-redistributable = true
-used_by = ["frnsc-linux"]
-
-[[artifact]]
 id = "linux-wtmp-synthetic-bad-utf8"
-description = "Same 6-record sequence as linux-wtmp-synthetic-lp64, but one record's ut_user is not valid UTF-8 (0xFC, not a valid UTF-8 lead byte); truth in linux-wtmp-synthetic-bad-utf8-truth"
+description = "Same 6-record sequence as linux-wtmp-synthetic-narrow32, but one record's ut_user is not valid UTF-8 (0xFC, not a valid UTF-8 lead byte); truth in linux-wtmp-synthetic-bad-utf8-truth"
 format = "utmp"
 source = "synthetic"
 tier = "ci"
@@ -1130,6 +1088,104 @@ hf_path = "synthetic/text/linux-containerd-cri-synthetic/containerd-cri.log"
 filename = "containerd-cri.log"
 sha256 = "7655e80f9d8d983ced3bc9e41fc66c3e35449da8c75c7fe4505914e6bf07fe9c"
 size = 271
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-narrow32"
+description = "wtmp-format login/logout/boot sequence (6 records: BOOT_TIME, RUN_LVL, LOGIN_PROCESS, 2x USER_PROCESS, DEAD_PROCESS), Narrow32 (384-byte) record layout - what the overwhelming majority of real x86/x86_64 Linux evidence uses; truth in linux-wtmp-synthetic-narrow32-truth"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-narrow32/wtmp_narrow32.bin"
+filename = "wtmp_narrow32.bin"
+sha256 = "2bdf20164da59609e120b6e9e45dda9c671fdcb5ea2f3bce0e252319f44b4496"
+size = 2304
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-narrow32-truth"
+description = "Expected records of linux-wtmp-synthetic-narrow32"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-wtmp-synthetic-narrow32-truth/wtmp_narrow32.truth.json"
+filename = "wtmp_narrow32.truth.json"
+sha256 = "93c6a3f69a8a87679a18eaa1bb711ccf4b37c6fd9be8e38002fc6829912b54ad"
+size = 2031
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-wide64"
+description = "Same 6 records as linux-wtmp-synthetic-narrow32, Wide64 (400-byte) record layout: session/tv_sec/tv_usec widened to 8 bytes each; truth in linux-wtmp-synthetic-wide64-truth"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-wide64/wtmp_wide64.bin"
+filename = "wtmp_wide64.bin"
+sha256 = "2bd003a49279fa33dcf2dfc44b51571f1ec0d310ccb080aa298b5cb499eb4377"
+size = 2400
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-wide64-truth"
+description = "Expected records of linux-wtmp-synthetic-wide64"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-wtmp-synthetic-wide64-truth/wtmp_wide64.truth.json"
+filename = "wtmp_wide64.truth.json"
+sha256 = "7beee192beb326a6c892339a5c6c336c56cd825e355f36c84688fcc22a2d39ef"
+size = 2029
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-wide64-truncated"
+description = "One Wide64 record (400 bytes) plus 50 trailing bytes = 450, a multiple of neither Narrow32 (384) nor Wide64 (400) record size - the real-file shape of frnsc-linux's pinned regression test a_wide64_file_truncated_mid_record_is_misdetected_as_narrow32; truth in linux-wtmp-synthetic-wide64-truncated-truth"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-wide64-truncated/wtmp_wide64_truncated.bin"
+filename = "wtmp_wide64_truncated.bin"
+sha256 = "07c1f8993fca58a432d8a1b0b6bfedbe6f83f39ce4fa1cb5fdb3861564f9abcc"
+size = 450
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-wide64-truncated-truth"
+description = "Expected content of linux-wtmp-synthetic-wide64-truncated, and the layout frnsc-linux's detect_layout is documented to (mis)detect for it"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-wtmp-synthetic-wide64-truncated-truth/wtmp_wide64_truncated.truth.json"
+filename = "wtmp_wide64_truncated.truth.json"
+sha256 = "216723ee1751453ce1e6387db3e2ded52a5f0c4784747dde2b03d8cdde99e41d"
+size = 756
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "frnsc-linux-utmp-sample"
+description = "Sample for frnsc_linux::unix::utmp real_samples.rs smoke test (same bytes as linux-wtmp-synthetic-narrow32; registered under this id because that's the id the test already calls artifact_or_skip! with)"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/frnsc-linux-utmp-sample/wtmp_narrow32.bin"
+filename = "wtmp_narrow32.bin"
+sha256 = "2bdf20164da59609e120b6e9e45dda9c671fdcb5ea2f3bce0e252319f44b4496"
+size = 2304
 license = "MIT"
 redistributable = true
 used_by = ["frnsc-linux"]
