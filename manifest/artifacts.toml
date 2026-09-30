@@ -923,3 +923,213 @@ size = 82614173
 license = "unknown"
 redistributable = false
 used_by = []
+
+[[artifact]]
+id = "linux-wtmp-synthetic-lp64"
+description = "wtmp-format login/logout/boot sequence (6 records: BOOT_TIME, RUN_LVL, LOGIN_PROCESS, 2x USER_PROCESS, DEAD_PROCESS), glibc 384-byte record layout; truth in linux-wtmp-synthetic-lp64-truth"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-lp64/wtmp_lp64.bin"
+filename = "wtmp_lp64.bin"
+sha256 = "2bdf20164da59609e120b6e9e45dda9c671fdcb5ea2f3bce0e252319f44b4496"
+size = 2304
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-lp64-truth"
+description = "Expected records of linux-wtmp-synthetic-lp64"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-wtmp-synthetic-lp64-truth/wtmp_lp64.truth.json"
+filename = "wtmp_lp64.truth.json"
+sha256 = "7b8c52494472e11e930543caf5046c74f6da1bcd1d94e3c70bcee8f09459fe54"
+size = 2007
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-ilp32"
+description = "Same records as linux-wtmp-synthetic-lp64, labeled as a 32-bit build's wtmp: glibc keeps ut_session/ut_tv at a fixed 32-bit width on every word size, so this file is intentionally byte-identical to linux-wtmp-synthetic-lp64 (see generators/utmp.py docstring) - the pair pins that invariant rather than exercising two different layouts"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-ilp32/wtmp_ilp32.bin"
+filename = "wtmp_ilp32.bin"
+sha256 = "2bdf20164da59609e120b6e9e45dda9c671fdcb5ea2f3bce0e252319f44b4496"
+size = 2304
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-bad-utf8"
+description = "Same 6-record sequence as linux-wtmp-synthetic-lp64, but one record's ut_user is not valid UTF-8 (0xFC, not a valid UTF-8 lead byte); truth in linux-wtmp-synthetic-bad-utf8-truth"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-bad-utf8/wtmp_bad_utf8.bin"
+filename = "wtmp_bad_utf8.bin"
+sha256 = "dd40bf9277d01e7eae1eb48e0b19827cd740955d148a9de0d4730a0a74a90b7d"
+size = 2304
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-bad-utf8-truth"
+description = "Expected records of linux-wtmp-synthetic-bad-utf8, including the raw hex of the non-UTF-8 ut_user"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-wtmp-synthetic-bad-utf8-truth/wtmp_bad_utf8.truth.json"
+filename = "wtmp_bad_utf8.truth.json"
+sha256 = "58dc93460c093d65b0cef8968a06b505323ab190072bcc08e1f828c387927ca4"
+size = 2123
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-truncated"
+description = "6 good records followed by a dangling partial record (200 of 384 bytes) at EOF; truth in linux-wtmp-synthetic-truncated-truth"
+format = "utmp"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/utmp/linux-wtmp-synthetic-truncated/wtmp_truncated.bin"
+filename = "wtmp_truncated.bin"
+sha256 = "3f37218990d233b4536b9e94642ebd367ba01fe30e47af2f8a16513208cd0069"
+size = 2504
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-wtmp-synthetic-truncated-truth"
+description = "Expected records of linux-wtmp-synthetic-truncated, plus the trailing partial record's byte length"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-wtmp-synthetic-truncated-truth/wtmp_truncated.truth.json"
+filename = "wtmp_truncated.truth.json"
+sha256 = "48a6724848a8fe97d76a42423ad8a050dfc697783f2270ef5aacef25f0aa2c68"
+size = 2047
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-syslog-rfc3164-synthetic"
+description = "Hand-written BSD syslog (RFC3164): PRI+no-year timestamp, sshd failed/closed login, kernel line, systemd unit start"
+format = "syslog"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/syslog/linux-syslog-rfc3164-synthetic/syslog-rfc3164.log"
+filename = "syslog-rfc3164.log"
+sha256 = "2c09ea418b6d507f6e36d648e52c6c8353773fe3514bbc7885f6cfe129647729"
+size = 383
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-syslog-rfc5424-synthetic"
+description = "Hand-written structured syslog (RFC5424): VERSION=1, ISO-8601 timestamp with offset, structured data element, and a NILVALUE (-) SD case"
+format = "syslog"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/syslog/linux-syslog-rfc5424-synthetic/syslog-rfc5424.log"
+filename = "syslog-rfc5424.log"
+sha256 = "7f1ecfb1faba39a394ea8115596e472f69d13082f0a80536f5daf2c58464bd44"
+size = 484
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-authlog-synthetic"
+description = "Hand-written Debian/Ubuntu auth.log: cron session, sshd pubkey accept + pam session open/close, sudo command"
+format = "syslog"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/syslog/linux-authlog-synthetic/auth.log"
+filename = "auth.log"
+sha256 = "3bb168d014b1154615de02b2242c11314662054175ba5a4c6346cda18efe1c7a"
+size = 581
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-auditlog-synthetic"
+description = "Hand-written Linux audit log: type=... msg=audit(epoch.msec:serial) USER_AUTH, USER_LOGIN, SYSCALL records with key=privileged-cmd"
+format = "audit"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/audit/linux-auditlog-synthetic/audit.log"
+filename = "audit.log"
+sha256 = "6eb94731259f567bfa1f7a6d704cfe5a1410a6d3e9efeeffc932eb800a5f525c"
+size = 728
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-bash-history-plain-synthetic"
+description = "Hand-written bash_history with no HISTTIMEFORMAT: bare commands, one per line"
+format = "bash-history"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/bash-history/linux-bash-history-plain-synthetic/bash_history_plain"
+filename = "bash_history_plain"
+sha256 = "21781c2c80bbdc1991f9d9a03f72234cb9b7cfef014d6625e5e840690d8c5f44"
+size = 83
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-bash-history-histtimeformat-synthetic"
+description = "Hand-written bash_history with HISTTIMEFORMAT set: #<unix-epoch> comment line preceding each command"
+format = "bash-history"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/bash-history/linux-bash-history-histtimeformat-synthetic/bash_history_histtimeformat"
+filename = "bash_history_histtimeformat"
+sha256 = "ada88dbfcfc09d2485460fbe65d1280ef42e7e7fb4112f675d2ac871ab42b560"
+size = 120
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-docker-jsonfile-synthetic"
+description = "Hand-written docker json-file logging-driver log: one {log,stream,time} JSON object per line, stdout+stderr"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/linux-docker-jsonfile-synthetic/docker-json-file.log"
+filename = "docker-json-file.log"
+sha256 = "50807727b21a4ea29165c7dd2579ab2ebf9c8db7d87c09fe69ca3be89d558937"
+size = 295
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "linux-containerd-cri-synthetic"
+description = "Hand-written containerd/CRI log: '<rfc3339nano> <stream> <F|P> <content>', including a partial(P)+full(F) split line pair"
+format = "text"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/text/linux-containerd-cri-synthetic/containerd-cri.log"
+filename = "containerd-cri.log"
+sha256 = "7655e80f9d8d983ced3bc9e41fc66c3e35449da8c75c7fe4505914e6bf07fe9c"
+size = 271
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-linux"]

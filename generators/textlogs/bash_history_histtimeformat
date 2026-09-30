@@ -1,0 +1,8 @@
+#1768464012
+ls -la
+#1768464030
+cd /var/log
+#1768464090
+cat auth.log | tail -50
+#1768464344
+sudo systemctl restart nginx

@@ -1,0 +1,4 @@
+2026-01-15T08:00:00.123456789Z stdout F Starting worker process
+2026-01-15T08:00:05.234567890Z stderr F connection refused: retrying in 5s
+2026-01-15T08:00:10.345678901Z stdout P listening on 0.0.0.0:80
+2026-01-15T08:00:10.345698765Z stdout F 80 (partial line continued)

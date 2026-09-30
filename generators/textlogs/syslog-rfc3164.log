@@ -1,0 +1,4 @@
+<34>Jan 15 08:00:12 fw01 sshd[1234]: Failed password for invalid user admin from 203.0.113.7 port 51515 ssh2
+<38>Jan 15 08:00:13 fw01 sshd[1234]: Connection closed by invalid user admin 203.0.113.7 port 51515 [preauth]
+<6>Jan 15 08:01:00 fw01 kernel: [12345.678901] eth0: link becomes ready
+<30>Jan 15 08:05:44 fw01 systemd[1]: Started nginx.service - A high performance web server.

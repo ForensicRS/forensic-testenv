@@ -1,0 +1,5 @@
+ls -la
+cd /var/log
+cat auth.log | tail -50
+sudo systemctl restart nginx
+history -c

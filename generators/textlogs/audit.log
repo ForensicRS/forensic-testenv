@@ -1,0 +1,3 @@
+type=USER_AUTH msg=audit(1768464012.345:1001): pid=1234 uid=0 auid=1001 ses=5 subj=unconfined msg='op=PAM:authentication grantors=pam_unix acct="deploy" exe="/usr/sbin/sshd" hostname=? addr=198.51.100.23 terminal=ssh res=success'
+type=USER_LOGIN msg=audit(1768464012.400:1002): pid=1234 uid=0 auid=1001 ses=5 msg='op=login id=1001 exe="/usr/sbin/sshd" hostname=? addr=198.51.100.23 terminal=/dev/pts/0 res=success'
+type=SYSCALL msg=audit(1768464344.100:1003): arch=c000003e syscall=59 success=yes exit=0 a0=55d1e2a3b8c0 a1=55d1e2a3c2e0 a2=55d1e2a3c8a0 a3=8 items=2 ppid=1233 pid=1300 auid=1001 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts0 ses=5 comm="systemctl" exe="/usr/bin/systemctl" key="privileged-cmd"
