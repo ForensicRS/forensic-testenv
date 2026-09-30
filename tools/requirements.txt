@@ -1,0 +1,2 @@
+# Only needed for publish_hf.py; fetch.py and add_artifact.py use the standard library.
+huggingface_hub>=0.25

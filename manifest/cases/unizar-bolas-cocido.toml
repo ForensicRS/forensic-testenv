@@ -1,0 +1,129 @@
+# "The mysterious case of the 'Cocido Balls' recipe" (Bolas de cocido), DFIR CTF of the
+# Universidad de Zaragoza: https://ctf.unizar.es/bolas_cocido/
+# Three Windows machines of one small network, collected on 2017-05-20 with Brimor Labs Live
+# Response. The DumpIt memory dumps of the same machines are not registered (no memory crate yet).
+#
+# Field reference: README.md#cases. Paths in facts are relative to the machine's root.
+# Every fact was read with a tool independent of ForensicRS (see verified_by); never add one
+# taken from a write-up alone.
+
+id = "unizar-bolas-cocido"
+source = "unizar-ctf"
+description = "Intrusion into a small Windows network (file server + 2 workstations): Sysmon, PowerShell and share-access (5140) logs, Prefetch, hives, $MFT/$LogFile/$UsnJrnl"
+notes = [
+    "Scenario rule: any IP address in 10.0.0.0/8 is considered to be located in Kazakhstan.",
+    "Memory dumps were taken with DumpIt; RabanoSRV's is a copy of a VM snapshot.",
+    "All three machines use time zone 'W. Europe Standard Time'; collection times in the directory names are local.",
+]
+
+[[machine]]
+name = "RabanoSRV"
+role = "file server, Windows Server 2008 R2 SP1"
+artifact = "triage-unizar-rabanosrv"
+root = "RABANOSRV_20170520_173407"
+
+[[machine]]
+name = "NaboPC2"
+role = "workstation, Windows 7 Enterprise SP1"
+artifact = "triage-unizar-nabopc2"
+root = "NABO2_20170520_174706"
+
+[[machine]]
+name = "BoniatoPC1"
+role = "workstation, Windows 7 Enterprise SP1"
+artifact = "triage-unizar-boniatopc1"
+root = "BONIATO1_20170520_180741"
+
+# ---------------------------------------------------------------------------- registry
+# Current control set is ControlSet001 on all three (SYSTEM\Select\Current = 1).
+
+[[fact]]
+machine = "RabanoSRV"
+kind = "hive-value"
+path = "LiveResponseData/CopiedFiles/registry/SYSTEM"
+expect = { key = 'ControlSet001\Control\ComputerName\ComputerName', name = "ComputerName", value = "RABANOSRV" }
+verified_by = "dissect.regf 3.14; matches the collector's BasicInfo/psinfo.txt"
+
+[[fact]]
+machine = "RabanoSRV"
+kind = "hive-value"
+path = "LiveResponseData/CopiedFiles/registry/SOFTWARE"
+expect = { key = 'Microsoft\Windows NT\CurrentVersion', name = "ProductName", value = "Windows Server 2008 R2 Standard" }
+verified_by = "dissect.regf 3.14"
+
+[[fact]]
+machine = "NaboPC2"
+kind = "hive-value"
+path = "LiveResponseData/CopiedFiles/registry/SYSTEM"
+expect = { key = 'ControlSet001\Control\ComputerName\ComputerName', name = "ComputerName", value = "NABO2" }
+verified_by = "dissect.regf 3.14; matches the collector's BasicInfo/psinfo.txt"
+
+[[fact]]
+machine = "NaboPC2"
+kind = "hive-value"
+path = "LiveResponseData/CopiedFiles/registry/SOFTWARE"
+expect = { key = 'Microsoft\Windows NT\CurrentVersion', name = "InstallDate", value = 1493633824 }
+verified_by = "dissect.regf 3.14"
+
+[[fact]]
+machine = "BoniatoPC1"
+kind = "hive-value"
+path = "LiveResponseData/CopiedFiles/registry/SYSTEM"
+expect = { key = 'ControlSet001\Control\TimeZoneInformation', name = "TimeZoneKeyName", value = "W. Europe Standard Time" }
+verified_by = "dissect.regf 3.14"
+
+# ---------------------------------------------------------------------------- event logs
+# `events` counts records per EventID; only the most frequent ones are listed.
+
+[[fact]]
+machine = "RabanoSRV"
+kind = "evtx-count"
+path = "LiveResponseData/CopiedFiles/eventlogs/Logs/Security.evtx"
+expect = { records = 462, events = { 4624 = 115, 4672 = 86, 4985 = 62, 5142 = 49, 5140 = 37, 5143 = 27 } }
+verified_by = "dissect.eventlog 3.11"
+
+[[fact]]
+machine = "NaboPC2"
+kind = "evtx-count"
+path = "LiveResponseData/CopiedFiles/eventlogs/Logs/Security.evtx"
+expect = { records = 2021, events = { 4907 = 1127, 4624 = 312, 4672 = 243, 4634 = 61, 4648 = 48, 4735 = 38 } }
+verified_by = "dissect.eventlog 3.11"
+
+[[fact]]
+machine = "NaboPC2"
+kind = "evtx-count"
+path = "LiveResponseData/CopiedFiles/eventlogs/Logs/Microsoft-Windows-Sysmon%4Operational.evtx"
+expect = { records = 69039, events = { 12 = 31644, 13 = 18754, 7 = 8813, 10 = 7626, 11 = 1280, 3 = 352 } }
+verified_by = "dissect.eventlog 3.11"
+
+[[fact]]
+machine = "BoniatoPC1"
+kind = "evtx-count"
+path = "LiveResponseData/CopiedFiles/eventlogs/Logs/Microsoft-Windows-PowerShell%4Operational.evtx"
+expect = { records = 543, events = { 4104 = 282, 8196 = 71, 12039 = 71, 8197 = 36, 40961 = 17, 53504 = 17 } }
+verified_by = "dissect.eventlog 3.11"
+
+# ---------------------------------------------------------------------------- prefetch
+# Version 23 (Windows 7). last_run is the raw FILETIME. The 60-byte executable name field holds
+# leftover bytes after its NUL terminator: `executable` is the string up to the first NUL.
+
+[[fact]]
+machine = "NaboPC2"
+kind = "prefetch-run"
+path = "LiveResponseData/CopiedFiles/prefetch/CMD.EXE-89305D47.pf"
+expect = { version = 23, executable = "CMD.EXE", run_count = 12, last_run = 131397678976762348 }
+verified_by = "dissect.target 3.25.1 prefetch plugin"
+
+[[fact]]
+machine = "NaboPC2"
+kind = "prefetch-run"
+path = "LiveResponseData/CopiedFiles/prefetch/NET.EXE-1DF3A2F6.pf"
+expect = { version = 23, executable = "NET.EXE", run_count = 1, last_run = 131397679288084093 }
+verified_by = "dissect.target 3.25.1 prefetch plugin"
+
+[[fact]]
+machine = "BoniatoPC1"
+kind = "prefetch-run"
+path = "LiveResponseData/CopiedFiles/prefetch/POWERSHELL.EXE-59FC8F3D.pf"
+expect = { version = 23, executable = "POWERSHELL.EXE", run_count = 12, last_run = 131397675958162111 }
+verified_by = "dissect.target 3.25.1 prefetch plugin"

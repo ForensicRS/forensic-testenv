@@ -1,0 +1,15 @@
+[package]
+name = "forensic-testdata"
+version = "0.1.0"
+edition = "2021"
+description = "Locates the ForensicRS test artifacts downloaded by forensic-testenv/tools/fetch.py"
+license = "MIT"
+publish = false
+
+[features]
+# Multi-machine scenarios from forensic-testenv/manifest/cases/ (`case_or_skip!`).
+cases = ["dep:serde", "dep:toml"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+toml = { version = "1", optional = true }

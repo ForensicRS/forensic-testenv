@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"   # weekly: detect origin URLs that died or changed content
+
+env:
+  FORENSIC_TESTDATA_DIR: ${{ github.workspace }}/.testdata
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Manifest parses and is consistent
+        run: python tools/fetch.py --list --tier all
+      - name: Fetch and verify the ci tier (HF mirror first)
+        run: python tools/fetch.py --tier ci
+      - name: Origins still serve the same bytes
+        if: github.event_name == 'schedule'
+        run: |
+          rm -rf "$FORENSIC_TESTDATA_DIR"
+          python tools/fetch.py --tier ci --no-hf
+
+  forensic-testdata:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo test --manifest-path crates/forensic-testdata/Cargo.toml
+      - run: cargo test --manifest-path crates/forensic-testdata/Cargo.toml --features cases
+      - run: cargo clippy --manifest-path crates/forensic-testdata/Cargo.toml --all-targets --features cases -- -D warnings

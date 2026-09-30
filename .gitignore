@@ -1,0 +1,4 @@
+/crates/*/target
+/crates/*/Cargo.lock
+/generators/out/
+__pycache__/
