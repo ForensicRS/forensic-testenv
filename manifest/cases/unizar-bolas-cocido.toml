@@ -127,3 +127,22 @@ kind = "prefetch-run"
 path = "LiveResponseData/CopiedFiles/prefetch/POWERSHELL.EXE-59FC8F3D.pf"
 expect = { version = 23, executable = "POWERSHELL.EXE", run_count = 12, last_run = 131397675958162111 }
 verified_by = "dissect.target 3.25.1 prefetch plugin"
+
+# The boot trace is far larger than an executable's prefetch file (1.8 and 2.4 MB here): a parser
+# capping prefetch files at 1 MB drops it. Read with a struct read of the version 23 header
+# (name at 0x10, last run at 0x80, run count at 0x98), which gives dissect's values for the
+# POWERSHELL.EXE fact above.
+
+[[fact]]
+machine = "NaboPC2"
+kind = "prefetch-run"
+path = "LiveResponseData/CopiedFiles/prefetch/NTOSBOOT-B00DFAAD.pf"
+expect = { version = 23, executable = "NTOSBOOT", run_count = 1, last_run = 131381069542528311 }
+verified_by = "struct read of the v23 header (python 3); offsets checked against dissect.target 3.25.1 on POWERSHELL.EXE-59FC8F3D.pf"
+
+[[fact]]
+machine = "BoniatoPC1"
+kind = "prefetch-run"
+path = "LiveResponseData/CopiedFiles/prefetch/NTOSBOOT-B00DFAAD.pf"
+expect = { version = 23, executable = "NTOSBOOT", run_count = 2, last_run = 131381856640236255 }
+verified_by = "struct read of the v23 header (python 3); offsets checked against dissect.target 3.25.1 on POWERSHELL.EXE-59FC8F3D.pf"
