@@ -527,7 +527,7 @@ sha256 = "07062c1233215747be97a602ae5831e2d5e05ad9ab6ba16f34fe55eebf687a97"
 size = 18350080
 license = "Apache-2.0"
 redistributable = true
-used_by = ["frnsc-esedb"]
+used_by = ["frnsc-esedb", "frnsc-pipeline"]
 
 [[artifact]]
 id = "esedb-ual-systemidentity"
