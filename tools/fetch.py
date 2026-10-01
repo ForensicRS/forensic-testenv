@@ -8,6 +8,7 @@
     fetch.py --id evtx-security             fetch specific artifacts
     fetch.py --case unizar-bolas-cocido     fetch every artifact of a case (manifest/cases/)
     fetch.py --verify                       re-hash every cached file
+    fetch.py --seed generators/out          take unpublished artifacts from local generator output
 
 Artifacts mirrored to the Hugging Face dataset are downloaded from there first,
 then from their origin URL, and last from the private cold copy (only with an
@@ -425,6 +426,41 @@ def fetch(art: Artifact, dataset: dict, use_hf: bool) -> None:
     raise RuntimeError("; ".join(errors) or "no source available (no hf_path, origin_url or readable cold_path)")
 
 
+class Seeds:
+    """Local files that may be artifacts nobody has published yet (e.g. generators/out/).
+    A file is only ever used when its size and hash match the manifest."""
+
+    def __init__(self, dirs: list[Path]):
+        self.files = sorted(p for d in dirs for p in d.rglob("*") if p.is_file() and not p.name.endswith(".verified"))
+        self.hashes: dict[Path, tuple[str, str]] = {}
+
+    def find(self, art: Artifact) -> Path | None:
+        if art.bundle or art.unpinned:
+            return None  # a bundle is a whole archive tree; an unpinned file can't be verified
+        for p in self.files:
+            if art.size is not None and p.stat().st_size != art.size:
+                continue
+            if p not in self.hashes:
+                self.hashes[p] = hash_file(p)
+            sha, md5 = self.hashes[p]
+            if (art.sha256 or sha) == sha and (art.md5 or md5) == md5:
+                return p
+        return None
+
+
+def seed(art: Artifact, seeds: Seeds) -> Path | None:
+    """Copy a matching local file into the cache, as if it had been downloaded."""
+    src = seeds.find(art)
+    if src is None:
+        return None
+    art.path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, art.path)
+    if not is_cached(art, deep=True):
+        art.path.unlink(missing_ok=True)
+        return None
+    return src
+
+
 # --------------------------------------------------------------------------- install / index
 
 
@@ -515,7 +551,11 @@ def main() -> int:
     ap.add_argument("--install", action="store_true", help="link artifacts into the crate paths from `install`")
     ap.add_argument("--copy", action="store_true", help="with --install: copy instead of symlink")
     ap.add_argument("--no-hf", action="store_true", help="ignore the Hugging Face mirror and cold copy, use origin URLs only")
+    ap.add_argument("--seed", action="append", default=[], type=Path, metavar="DIR",
+                    help="before downloading, take any file under DIR whose hash matches the manifest "
+                         "(e.g. generators/out for artifacts not published yet; repeatable)")
     args = ap.parse_args()
+    seeds = Seeds(args.seed) if args.seed else None
 
     dataset, arts = load_manifest(args.manifest)
     cases = load_cases(arts, args.manifest)
@@ -567,6 +607,8 @@ def main() -> int:
         try:
             if is_cached(a, deep=args.verify):
                 print("    ok (cached)")
+            elif seeds and (src := seed(a, seeds)):
+                print(f"    ok (seeded from {src}) -> {a.path}")
             elif args.no_hf and not a.origin_url:
                 print("    skipped (only available from the Hugging Face mirror)")
                 continue

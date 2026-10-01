@@ -31,6 +31,7 @@ tools/fetch.py --crate frnsc-winevt --install  # one crate's artifacts, linked w
 tools/fetch.py --tier full                     # large disk images (tens of GB, manual/nightly use)
 tools/fetch.py --case unizar-bolas-cocido      # every artifact of a case (~1.2 GB extracted)
 tools/fetch.py --verify                        # re-hash everything already cached
+tools/fetch.py --seed generators/out --seed generators/textlogs  # not published yet: take local files whose hash matches
 ```
 
 Files are cached (content-addressed) under `~/.cache/forensic-testdata`, or `$FORENSIC_TESTDATA_DIR`.
