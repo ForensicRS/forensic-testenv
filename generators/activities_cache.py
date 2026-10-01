@@ -16,7 +16,13 @@ a UTF-8 JSON blob. It covers what a parser must not invent:
   in Activity, which only ActivityOperation still records.
 
 Deterministic: the same script writes the same bytes (fixed times and ids, VACUUM, no WAL).
+
+It also writes generators/out/activities_cache/wal/ActivitiesCache.db and its -wal, copied from a
+live connection the way Windows leaves them: the database above checkpointed, then one more
+activity (Notepad opening todo.txt, 2026-03-02T08:00:00) committed into the log only. That pair is
+not byte-reproducible (SQLite draws the log's salts at random): pin it once by hash.
 """
+import shutil
 import json
 import sqlite3
 import uuid
@@ -162,9 +168,35 @@ def main() -> None:
     con.commit()
     con.execute("VACUUM")
     con.close()
+    write_wal_variant(db_path)
     (OUT / "ActivitiesCache.truth.json").write_text(
         json.dumps(truth, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wrote {db_path} and ActivitiesCache.truth.json")
+
+
+def write_wal_variant(db_path: Path) -> None:
+    out = OUT / "wal"
+    out.mkdir(parents=True, exist_ok=True)
+    live = out / "live.db"
+    shutil.copyfile(db_path, live)
+    for p in (Path(f"{live}-wal"), Path(f"{live}-shm")):
+        p.unlink(missing_ok=True)
+    con = sqlite3.connect(live, isolation_level=None)
+    assert con.execute("PRAGMA journal_mode=WAL").fetchone()[0] == "wal"
+    con.execute("PRAGMA wal_autocheckpoint=0")
+    s = secs("2026-03-02T08:00:00")
+    con.execute(
+        "INSERT INTO [Activity]([Id], [AppId], [AppActivityId], [ActivityType], [ActivityStatus], "
+        "[LastModifiedTime], [ExpirationTime], [Payload], [StartTime], [EndTime], [LastModifiedOnClient], [ETag]) "
+        "VALUES (?, ?, ?, 5, 1, ?, ?, ?, ?, 0, ?, 8)",
+        (guid(8), NOTEPAD, "ECB32AF3-1440-4086-94E3-5311F97F89C4\\todo.txt", s, s + EXPIRY_DAYS * 86_400,
+         payload({"displayText": "todo.txt", "appDisplayName": "Notepad",
+                  "description": "C:\\Users\\alice\\Documents\\todo.txt"}), s, s))
+    shutil.copyfile(live, out / "ActivitiesCache.db")
+    shutil.copyfile(f"{live}-wal", out / "ActivitiesCache.db-wal")
+    con.close()
+    for p in (live, Path(f"{live}-wal"), Path(f"{live}-shm")):
+        p.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

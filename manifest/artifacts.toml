@@ -1525,3 +1525,101 @@ size = 437
 license = "MIT"
 redistributable = true
 used_by = ["frnsc-linux"]
+
+[[artifact]]
+id = "sqlite-wal-committed-synthetic"
+description = "generators/sqlite_wal.py 'committed': the database file of a WAL-mode database copied live, page 1 only (the table exists only in sqlite-wal-committed-synthetic-log)"
+format = "sqlite"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/sqlite/sqlite-wal-committed-synthetic/wal.db"
+filename = "wal.db"
+sha256 = "352a9bb23c329c5a9bf235baf56917358b5b64b03f1a11d261fadae9c3cdb721"
+size = 4096
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
+
+[[artifact]]
+id = "sqlite-wal-committed-synthetic-log"
+description = "The -wal of sqlite-wal-committed-synthetic, written by real SQLite: 104 frames, 6 committed (table creation, inserts, an update, a delete; rows 1,3,4,5 visible), 98 uncommitted spilled frames a reader must not apply"
+format = "sqlite-wal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/sqlite-wal/sqlite-wal-committed-synthetic-log/wal.db-wal"
+filename = "wal.db-wal"
+sha256 = "7aa7ca1682e299c52bb984c822d3d31f3976199f457fc9cd64acb4a435613f56"
+size = 428512
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
+
+[[artifact]]
+id = "sqlite-wal-restarted-synthetic"
+description = "generators/sqlite_wal.py 'restarted': rows 1-10 checkpointed with wal_checkpoint(RESTART)"
+format = "sqlite"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/sqlite/sqlite-wal-restarted-synthetic/wal.db"
+filename = "wal.db"
+sha256 = "22118f791e292dd3c5b9a12d66cb4cc2285ad8367489aa07497aff8dfaf1b58e"
+size = 49152
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
+
+[[artifact]]
+id = "sqlite-wal-restarted-synthetic-log"
+description = "The -wal of sqlite-wal-restarted-synthetic: row 11 in 1 live frame, then 30 frames of the earlier log generation (other salts) a reader must stop at"
+format = "sqlite-wal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/sqlite-wal/sqlite-wal-restarted-synthetic-log/wal.db-wal"
+filename = "wal.db-wal"
+sha256 = "a99d94c7b2bbe98098ed51a6ac01077aa476535d1d007e4e9dd8ca249569d966"
+size = 127752
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
+
+[[artifact]]
+id = "sqlite-wal-synthetic-truth"
+description = "Expected rows of sqlite-wal-committed-synthetic and sqlite-wal-restarted-synthetic, read through their logs"
+format = "json"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/json/sqlite-wal-synthetic-truth/sqlite_wal.truth.json"
+filename = "sqlite_wal.truth.json"
+sha256 = "e2376f61fb5c73a62c1c41413529ff361f6f436f1c2efb1a1240ad4bf049d449"
+size = 848
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
+
+[[artifact]]
+id = "sqlite-activities-cache-wal-synthetic"
+description = "sqlite-activities-cache-synthetic left in WAL mode, as Windows leaves it: 6 activities in the database file"
+format = "sqlite"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/sqlite/sqlite-activities-cache-wal-synthetic/ActivitiesCache.db"
+filename = "ActivitiesCache.db"
+sha256 = "ace54004166c97ffd3370cb09d5404865e3eb61eb1e67a957b85e38daf211e98"
+size = 28672
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
+
+[[artifact]]
+id = "sqlite-activities-cache-wal-synthetic-log"
+description = "The -wal of sqlite-activities-cache-wal-synthetic, written by real SQLite: commits a 7th activity (Notepad opening todo.txt, 2026-03-02T08:00:00Z) that only a log-replaying reader sees"
+format = "sqlite-wal"
+source = "synthetic"
+tier = "ci"
+hf_path = "synthetic/sqlite-wal/sqlite-activities-cache-wal-synthetic-log/ActivitiesCache.db-wal"
+filename = "ActivitiesCache.db-wal"
+sha256 = "8eaeb56d05b66e0034c3686e536d65e9488f019b4448d45aa37c7ce201a60dba"
+size = 8272
+license = "MIT"
+redistributable = true
+used_by = ["frnsc-sqlite"]
