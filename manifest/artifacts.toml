@@ -484,7 +484,7 @@ sha256 = "6536ae6bb5b91f6f8f37a4af26f6cfaecc8a1f745370bfba83af7ebae6694e3e"
 size = 7864320
 license = "Apache-2.0"
 redistributable = true
-used_by = ["frnsc-esedb"]
+used_by = ["frnsc-esedb", "frnsc-pipeline"]
 
 [[artifact]]
 id = "esedb-webcache-cookies"
@@ -514,7 +514,7 @@ sha256 = "c247fd88f20399edae69ae7bcdc84e0f9e8183af2ea95153e16ca1538172641f"
 size = 1048576
 license = "Apache-2.0"
 redistributable = true
-used_by = ["frnsc-esedb"]
+used_by = ["frnsc-esedb", "frnsc-pipeline"]
 
 [[artifact]]
 id = "esedb-ual-guid"
@@ -529,7 +529,7 @@ sha256 = "7c6f5f403e06af5c9833cae7a316c34270212830d15890feb9e6315c35d752da"
 size = 1048576
 license = "Apache-2.0"
 redistributable = true
-used_by = ["frnsc-esedb"]
+used_by = ["frnsc-esedb", "frnsc-pipeline"]
 
 # ## OLE / CFBF
 
