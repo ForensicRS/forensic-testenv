@@ -638,7 +638,7 @@ sha256 = "cd37cc6891ede23c98c6f68395b5aa4c9cc24aff7268d5a6414fab8ae17a4849"
 size = 163840
 license = "Apache-2.0"
 redistributable = true
-used_by = ["frnsc-sqlite"]
+used_by = ["frnsc-sqlite", "frnsc-pipeline"]
 
 # ============================================================================ full tier: disk images
 # Origin only (large). Publishers give media/acquisition hashes, not file hashes: entries without
